@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { queryOsv } from "../utils/osvApi";
+import { ScanCharts } from "./ScanCharts";
 
 export const EnhancedScanner = () => {
   const [includeDevDeps, setIncludeDevDeps] = useState(false);
@@ -10,6 +11,9 @@ export const EnhancedScanner = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [totalPackages, setTotalPackages] = useState(0);
+  const [riskScore, setRiskScore] = useState(0);
+  
 
   const handleScan = async (jsonText: string) => {
     try {
@@ -47,6 +51,13 @@ export const EnhancedScanner = () => {
 
       setVulnerabilities(vulns);
       setSafePackages(safe);
+
+      const totalCount = vulns.length + safe.length;
+const riskScore = totalCount > 0 ? Math.round((vulns.length / totalCount) * 10) : 0;
+setTotalPackages(totalCount);
+setRiskScore(riskScore);
+
+      
     } catch (err) {
       setError("Invalid JSON or unsupported file format.");
     } finally {
@@ -75,6 +86,9 @@ export const EnhancedScanner = () => {
     setSafePackages([]);
     setError("");
     setLoading(false);
+    setTotalPackages(0);
+setRiskScore(0);
+
 
     // Reset file input
     if (fileInputRef.current) {
@@ -165,6 +179,17 @@ export const EnhancedScanner = () => {
           </div>
         </div>
       )}
+
+{!loading && totalPackages > 0 && (
+  <ScanCharts
+    riskScore={riskScore}
+    total={totalPackages}
+    vulnerable={vulnerabilities.length}
+    safe={safePackages.length}
+  />
+)}
+
+
 
       {/* Feedback */}
       {error && <p className="text-red-600 mt-4">{error}</p>}

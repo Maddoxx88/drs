@@ -195,12 +195,30 @@ setRiskScore(0);
         <strong>Safe</strong>
         <p>{safePackages.length}</p>
       </div>
-      <div className="bg-white p-3 rounded shadow">
-        <strong>Risk Score</strong>
-        <p className={riskScore > 6 ? "text-red-700" : riskScore > 3 ? "text-yellow-600" : "text-green-600"}>
-          {riskScore}/10
-        </p>
-      </div>
+      <div className="bg-white p-3 rounded shadow text-center">
+  <strong>Risk Score</strong>
+  <div className="mt-2">
+    <div
+      className={`w-12 h-12 rounded-full mx-auto text-lg font-bold flex items-center justify-center shadow-md transition-all duration-500 ${
+        riskScore > 6
+          ? "bg-red-600 text-white pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+          : riskScore > 3
+          ? "bg-yellow-400 text-black"
+          : "bg-green-500 text-white"
+      }`}
+    >
+      {riskScore}
+    </div>
+    <p className="text-xs mt-1">
+      {riskScore > 6
+        ? "High Risk"
+        : riskScore > 3
+        ? "Medium Risk"
+        : "Low Risk"}
+    </p>
+  </div>
+</div>
+
     </div>
   </div>
 )}

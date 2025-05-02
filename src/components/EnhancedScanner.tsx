@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { queryOsv } from "../utils/osvApi";
 
 export const EnhancedScanner = () => {
@@ -8,6 +8,8 @@ export const EnhancedScanner = () => {
   const [safePackages, setSafePackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
 
   const handleScan = async (jsonText: string) => {
     try {
@@ -15,24 +17,30 @@ export const EnhancedScanner = () => {
       setVulnerabilities([]);
       setSafePackages([]);
       setLoading(true);
-
+  
       const json = JSON.parse(jsonText);
-      const deps = json.dependencies || {};
-
+      const deps = json.dependencies;
+  
+      if (!deps || Object.keys(deps).length === 0) {
+        setError("No dependencies found in the provided file.");
+        setLoading(false);
+        return;
+      }
+  
       const vulns: any[] = [];
       const safe: any[] = [];
-
+  
       for (const [name, version] of Object.entries(deps)) {
         const cleanVersion = (version as string).replace(/^[^\d]*/, "");
         const data = await queryOsv(name, cleanVersion);
-
+  
         if (data.vulns?.length) {
           vulns.push({ name, version, vulns: data.vulns });
         } else {
           safe.push({ name, version });
         }
       }
-
+  
       setVulnerabilities(vulns);
       setSafePackages(safe);
     } catch (err) {
@@ -41,7 +49,7 @@ export const EnhancedScanner = () => {
       setLoading(false);
     }
   };
-
+  
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -63,6 +71,11 @@ export const EnhancedScanner = () => {
     setSafePackages([]);
     setError("");
     setLoading(false);
+
+      // Reset file input
+  if (fileInputRef.current) {
+    fileInputRef.current.value = "";
+  }
   };
 
   return (
@@ -95,6 +108,7 @@ export const EnhancedScanner = () => {
       {tab === "upload" && (
   <div className="flex items-center space-x-4">
     <input
+    ref={fileInputRef}
       type="file"
       accept=".json"
       onChange={handleFile}

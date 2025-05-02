@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { queryOsv } from "../utils/osvApi";
+import { ScanCharts } from "./ScanCharts";
 
 export const EnhancedScanner = () => {
   const [includeDevDeps, setIncludeDevDeps] = useState(false);
@@ -180,48 +181,14 @@ setRiskScore(0);
       )}
 
 {!loading && totalPackages > 0 && (
-  <div className="mt-6 bg-gray-100 border border-gray-300 rounded p-4">
-    <h2 className="text-lg font-semibold mb-2">📊 Scan Summary</h2>
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-800">
-      <div className="bg-white p-3 rounded shadow">
-        <strong>Total</strong>
-        <p>{totalPackages} packages</p>
-      </div>
-      <div className="bg-white p-3 rounded shadow text-red-600">
-        <strong>Vulnerable</strong>
-        <p>{vulnerabilities.length} found</p>
-      </div>
-      <div className="bg-white p-3 rounded shadow text-green-600">
-        <strong>Safe</strong>
-        <p>{safePackages.length}</p>
-      </div>
-      <div className="bg-white p-3 rounded shadow text-center">
-  <strong>Risk Score</strong>
-  <div className="mt-2">
-    <div
-      className={`w-12 h-12 rounded-full mx-auto text-lg font-bold flex items-center justify-center shadow-md transition-all duration-500 ${
-        riskScore > 6
-          ? "bg-red-600 text-white pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite"
-          : riskScore > 3
-          ? "bg-yellow-400 text-black"
-          : "bg-green-500 text-white"
-      }`}
-    >
-      {riskScore}
-    </div>
-    <p className="text-xs mt-1">
-      {riskScore > 6
-        ? "High Risk"
-        : riskScore > 3
-        ? "Medium Risk"
-        : "Low Risk"}
-    </p>
-  </div>
-</div>
-
-    </div>
-  </div>
+  <ScanCharts
+    riskScore={riskScore}
+    total={totalPackages}
+    vulnerable={vulnerabilities.length}
+    safe={safePackages.length}
+  />
 )}
+
 
 
       {/* Feedback */}

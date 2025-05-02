@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { queryOsv } from "../utils/osvApi";
 
 export const EnhancedScanner = () => {
+  const [includeDevDeps, setIncludeDevDeps] = useState(false);
   const [tab, setTab] = useState<"upload" | "paste">("upload");
   const [inputText, setInputText] = useState("");
   const [vulnerabilities, setVulnerabilities] = useState<any[]>([]);
@@ -10,37 +11,40 @@ export const EnhancedScanner = () => {
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-
   const handleScan = async (jsonText: string) => {
     try {
       setError("");
       setVulnerabilities([]);
       setSafePackages([]);
       setLoading(true);
-  
+
       const json = JSON.parse(jsonText);
-      const deps = json.dependencies;
-  
+      const deps = {
+        ...(json.dependencies || {}),
+        ...(includeDevDeps ? json.devDependencies || {} : {}),
+      };
+      
+
       if (!deps || Object.keys(deps).length === 0) {
         setError("No dependencies found in the provided file.");
         setLoading(false);
         return;
       }
-  
+
       const vulns: any[] = [];
       const safe: any[] = [];
-  
+
       for (const [name, version] of Object.entries(deps)) {
         const cleanVersion = (version as string).replace(/^[^\d]*/, "");
         const data = await queryOsv(name, cleanVersion);
-  
+
         if (data.vulns?.length) {
           vulns.push({ name, version, vulns: data.vulns });
         } else {
           safe.push({ name, version });
         }
       }
-  
+
       setVulnerabilities(vulns);
       setSafePackages(safe);
     } catch (err) {
@@ -49,7 +53,7 @@ export const EnhancedScanner = () => {
       setLoading(false);
     }
   };
-  
+
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -72,10 +76,10 @@ export const EnhancedScanner = () => {
     setError("");
     setLoading(false);
 
-      // Reset file input
-  if (fileInputRef.current) {
-    fileInputRef.current.value = "";
-  }
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -104,51 +108,63 @@ export const EnhancedScanner = () => {
         </button>
       </div>
 
+      <div className="mb-4">
+  <label className="inline-flex items-center space-x-2">
+    <input
+      type="checkbox"
+      checked={includeDevDeps}
+      onChange={(e) => setIncludeDevDeps(e.target.checked)}
+      className="accent-blue-600"
+    />
+    <span>Include <code>devDependencies</code></span>
+  </label>
+</div>
+
+
       {/* Upload or Paste */}
       {tab === "upload" && (
-  <div className="flex items-center space-x-4">
-    <input
-    ref={fileInputRef}
-      type="file"
-      accept=".json"
-      onChange={handleFile}
-      className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-600 file:text-white hover:file:bg-blue-700"
-    />
-    <button
-      onClick={clearState}
-      className="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300"
-    >
-      Clear
-    </button>
-  </div>
-)}
+        <div className="flex items-center space-x-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleFile}
+            className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+          />
+          <button
+            onClick={clearState}
+            className="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300"
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
-{tab === "paste" && (
-  <div>
-    <textarea
-      rows={10}
-      className="w-full border p-3 mb-2 rounded font-mono text-sm"
-      placeholder="Paste your package.json content here..."
-      value={inputText}
-      onChange={(e) => setInputText(e.target.value)}
-    />
-    <div className="mt-2 flex space-x-3">
-      <button
-        onClick={handlePasteScan}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
-        Scan Now
-      </button>
-      <button
-        onClick={clearState}
-        className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
-      >
-        Clear
-      </button>
-    </div>
-  </div>
-)}
-
+      {tab === "paste" && (
+        <div>
+          <textarea
+            rows={10}
+            className="w-full border p-3 mb-2 rounded font-mono text-sm"
+            placeholder="Paste your package.json content here..."
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+          />
+          <div className="mt-2 flex space-x-3">
+            <button
+              onClick={handlePasteScan}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Scan Now
+            </button>
+            <button
+              onClick={clearState}
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Feedback */}
       {error && <p className="text-red-600 mt-4">{error}</p>}

@@ -57,9 +57,19 @@ export const EnhancedScanner = () => {
     handleScan(inputText);
   };
 
+  const clearState = () => {
+    setInputText("");
+    setVulnerabilities([]);
+    setSafePackages([]);
+    setError("");
+    setLoading(false);
+  };
+
   return (
     <div className="p-6 max-w-3xl mx-auto bg-white shadow-md rounded-xl">
-      <h1 className="text-3xl font-bold mb-4 text-blue-700">🔍 Dependency Risk Scanner</h1>
+      <h1 className="text-3xl font-bold mb-4 text-blue-700">
+        🔍 Dependency Risk Scanner
+      </h1>
 
       {/* Tabs */}
       <div className="flex space-x-4 mb-6">
@@ -82,25 +92,49 @@ export const EnhancedScanner = () => {
       </div>
 
       {/* Upload or Paste */}
-      {tab === "upload" ? (
-        <input type="file" accept=".json" onChange={handleFile} />
-      ) : (
-        <div>
-          <textarea
-            rows={10}
-            className="w-full border p-3 mb-2 rounded font-mono text-sm"
-            placeholder="Paste your package.json content here..."
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-          />
-          <button
-            onClick={handlePasteScan}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Scan Now
-          </button>
-        </div>
-      )}
+      {tab === "upload" && (
+  <div className="flex items-center space-x-4">
+    <input
+      type="file"
+      accept=".json"
+      onChange={handleFile}
+      className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+    />
+    <button
+      onClick={clearState}
+      className="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300"
+    >
+      Clear
+    </button>
+  </div>
+)}
+
+{tab === "paste" && (
+  <div>
+    <textarea
+      rows={10}
+      className="w-full border p-3 mb-2 rounded font-mono text-sm"
+      placeholder="Paste your package.json content here..."
+      value={inputText}
+      onChange={(e) => setInputText(e.target.value)}
+    />
+    <div className="mt-2 flex space-x-3">
+      <button
+        onClick={handlePasteScan}
+        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      >
+        Scan Now
+      </button>
+      <button
+        onClick={clearState}
+        className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300"
+      >
+        Clear
+      </button>
+    </div>
+  </div>
+)}
+
 
       {/* Feedback */}
       {error && <p className="text-red-600 mt-4">{error}</p>}
@@ -109,15 +143,27 @@ export const EnhancedScanner = () => {
       {/* Results */}
       {!loading && vulnerabilities.length > 0 && (
         <div className="mt-6">
-          <h2 className="font-semibold text-red-700 mb-2">🚨 Vulnerabilities Found</h2>
+          <h2 className="font-semibold text-red-700 mb-2">
+            🚨 Vulnerabilities Found
+          </h2>
           {vulnerabilities.map((item, i) => (
-            <div key={i} className="bg-red-100 border border-red-300 p-3 mb-3 rounded">
-              <strong>{item.name}@{item.version}</strong>
+            <div
+              key={i}
+              className="bg-red-100 border border-red-300 p-3 mb-3 rounded"
+            >
+              <strong>
+                {item.name}@{item.version}
+              </strong>
               <ul className="list-disc ml-6 text-sm">
                 {item.vulns.map((v: any, j: number) => (
                   <li key={j}>
                     {v.id}: {v.summary}
-                    <a href={v.references?.[0]?.url || "#"} className="text-blue-600 ml-1 underline" target="_blank" rel="noreferrer">
+                    <a
+                      href={v.references?.[0]?.url || "#"}
+                      className="text-blue-600 ml-1 underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       [details]
                     </a>
                   </li>
@@ -136,10 +182,14 @@ export const EnhancedScanner = () => {
 
       {!loading && safePackages.length > 0 && (
         <div className="mt-4">
-          <h2 className="font-semibold text-green-700 mb-2">✅ Safe Packages</h2>
+          <h2 className="font-semibold text-green-700 mb-2">
+            ✅ Safe Packages
+          </h2>
           <ul className="list-disc ml-6 text-sm">
             {safePackages.map((pkg, i) => (
-              <li key={i}>{pkg.name}@{pkg.version}</li>
+              <li key={i}>
+                {pkg.name}@{pkg.version}
+              </li>
             ))}
           </ul>
         </div>

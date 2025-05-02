@@ -10,6 +10,9 @@ export const EnhancedScanner = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [totalPackages, setTotalPackages] = useState(0);
+  const [riskScore, setRiskScore] = useState(0);
+  
 
   const handleScan = async (jsonText: string) => {
     try {
@@ -47,6 +50,13 @@ export const EnhancedScanner = () => {
 
       setVulnerabilities(vulns);
       setSafePackages(safe);
+
+      const totalCount = vulns.length + safe.length;
+const riskScore = totalCount > 0 ? Math.round((vulns.length / totalCount) * 10) : 0;
+setTotalPackages(totalCount);
+setRiskScore(riskScore);
+
+      
     } catch (err) {
       setError("Invalid JSON or unsupported file format.");
     } finally {
@@ -75,6 +85,9 @@ export const EnhancedScanner = () => {
     setSafePackages([]);
     setError("");
     setLoading(false);
+    setTotalPackages(0);
+setRiskScore(0);
+
 
     // Reset file input
     if (fileInputRef.current) {
@@ -165,6 +178,33 @@ export const EnhancedScanner = () => {
           </div>
         </div>
       )}
+
+{!loading && totalPackages > 0 && (
+  <div className="mt-6 bg-gray-100 border border-gray-300 rounded p-4">
+    <h2 className="text-lg font-semibold mb-2">📊 Scan Summary</h2>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-800">
+      <div className="bg-white p-3 rounded shadow">
+        <strong>Total</strong>
+        <p>{totalPackages} packages</p>
+      </div>
+      <div className="bg-white p-3 rounded shadow text-red-600">
+        <strong>Vulnerable</strong>
+        <p>{vulnerabilities.length} found</p>
+      </div>
+      <div className="bg-white p-3 rounded shadow text-green-600">
+        <strong>Safe</strong>
+        <p>{safePackages.length}</p>
+      </div>
+      <div className="bg-white p-3 rounded shadow">
+        <strong>Risk Score</strong>
+        <p className={riskScore > 6 ? "text-red-700" : riskScore > 3 ? "text-yellow-600" : "text-green-600"}>
+          {riskScore}/10
+        </p>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* Feedback */}
       {error && <p className="text-red-600 mt-4">{error}</p>}

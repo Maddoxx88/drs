@@ -20,10 +20,15 @@ export const EnhancedScanner = () => {
   const [riskScore, setRiskScore] = useState(0);
   const [ecosystem, setEcosystem] = useState<"npm" | "PyPI" | null>(null);
   const [githubUrl, setGithubUrl] = useState("");
+  const [githubBranch, setGithubBranch] = useState("main");
+
 
   const handleGitHubScan = async () => {
     setError("");
     setLoading(true);
+
+
+
 
     try {
       const regex = /github\.com\/([^\/]+)\/([^\/]+)(?:\/|$)/;
@@ -37,7 +42,7 @@ export const EnhancedScanner = () => {
 
       const owner = match[1];
       const repo = match[2];
-      const branch = "main"; // or let users specify later
+      const branch = githubBranch || "main";
 
       const tryFetchFile = async (filename: string) => {
         const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filename}`;
@@ -273,29 +278,37 @@ export const EnhancedScanner = () => {
       )}
 
 {tab === "github" && (
-  <div>
-    <input
-      type="text"
-      placeholder="Paste GitHub repo URL (e.g. https://github.com/psf/requests)"
-      value={githubUrl}
-      onChange={(e) => setGithubUrl(e.target.value)}
-      className="w-full border p-3 rounded mb-2"
-    />
-    <div className="flex gap-3 mt-2">
-      <button
-        onClick={handleGitHubScan}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
-        Scan Repo
-      </button>
-      <button
-        onClick={clearState}
-        className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
-      >
-        Clear
-      </button>
-    </div>
+  <div className="space-y-2">
+  <input
+    type="text"
+    placeholder="Paste GitHub repo URL (e.g. https://github.com/psf/requests)"
+    value={githubUrl}
+    onChange={(e) => setGithubUrl(e.target.value)}
+    className="w-full border p-3 rounded"
+  />
+  <input
+    type="text"
+    placeholder="Branch name (default: main)"
+    value={githubBranch}
+    onChange={(e) => setGithubBranch(e.target.value)}
+    className="w-full border p-3 rounded"
+  />
+  <div className="flex gap-3 mt-2">
+    <button
+      onClick={handleGitHubScan}
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+    >
+      Scan Repo
+    </button>
+    <button
+      onClick={clearState}
+      className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+    >
+      Clear
+    </button>
   </div>
+</div>
+
 )}
 
 

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { queryOsv } from "../utils/osvApi";
+import { parseRequirements, queryOsv } from "../utils/osvApi";
 import { ScanCharts } from "./ScanCharts";
 
 export const EnhancedScanner = () => {
@@ -13,26 +13,44 @@ export const EnhancedScanner = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [totalPackages, setTotalPackages] = useState(0);
   const [riskScore, setRiskScore] = useState(0);
-  
 
-  const handleScan = async (jsonText: string) => {
+  const handleScan = async (rawText: string) => {
     try {
       setError("");
       setVulnerabilities([]);
       setSafePackages([]);
       setLoading(true);
 
-      const json = JSON.parse(jsonText);
-      const deps = {
-        ...(json.dependencies || {}),
-        ...(includeDevDeps ? json.devDependencies || {} : {}),
-      };
-      
+      let deps: Record<string, string> = {};
+      let ecosystem: "npm" | "PyPI" = "npm";
 
-      if (!deps || Object.keys(deps).length === 0) {
-        setError("No dependencies found in the provided file.");
-        setLoading(false);
-        return;
+      try {
+        const json = JSON.parse(rawText);
+        const baseDeps = json.dependencies || {};
+        const devDeps = includeDevDeps ? json.devDependencies || {} : {};
+        deps = { ...baseDeps, ...devDeps };
+
+        if (Object.keys(deps).length === 0) {
+          setError("No dependencies found in the provided JSON.");
+          setLoading(false);
+          return;
+        }
+
+        ecosystem = "npm";
+      } catch {
+        // Not JSON? Try parsing as requirements.txt
+        const parsedReqs = parseRequirements(rawText);
+
+        if (parsedReqs.length === 0) {
+          setError("No dependencies found in the provided text.");
+          setLoading(false);
+          return;
+        }
+
+        ecosystem = "PyPI";
+        for (const { name, version } of parsedReqs) {
+          deps[name] = version || "latest"; // fallback for packages with no version specified
+        }
       }
 
       const vulns: any[] = [];
@@ -40,7 +58,7 @@ export const EnhancedScanner = () => {
 
       for (const [name, version] of Object.entries(deps)) {
         const cleanVersion = (version as string).replace(/^[^\d]*/, "");
-        const data = await queryOsv(name, cleanVersion);
+        const data = await queryOsv(name, cleanVersion, ecosystem);
 
         if (data.vulns?.length) {
           vulns.push({ name, version, vulns: data.vulns });
@@ -53,13 +71,13 @@ export const EnhancedScanner = () => {
       setSafePackages(safe);
 
       const totalCount = vulns.length + safe.length;
-const riskScore = totalCount > 0 ? Math.round((vulns.length / totalCount) * 10) : 0;
-setTotalPackages(totalCount);
-setRiskScore(riskScore);
+      const riskScore =
+        totalCount > 0 ? Math.round((vulns.length / totalCount) * 10) : 0;
 
-      
+      setTotalPackages(totalCount);
+      setRiskScore(riskScore);
     } catch (err) {
-      setError("Invalid JSON or unsupported file format.");
+      setError("Invalid file or unsupported format.");
     } finally {
       setLoading(false);
     }
@@ -69,15 +87,20 @@ setRiskScore(riskScore);
     const file = e.target.files?.[0];
     if (!file) return;
     const text = await file.text();
+    const fileExtension = file.name.split(".").pop();
+    if (fileExtension === "txt") {
+      // parse as requirements.txt
+    }
     handleScan(text);
   };
 
   const handlePasteScan = () => {
     if (!inputText.trim()) {
-      setError("Please paste valid JSON.");
+      setError("Please paste your package.json or requirements.txt content.");
       return;
     }
-    handleScan(inputText);
+
+    handleScan(inputText); // use the new unified scanner!
   };
 
   const clearState = () => {
@@ -87,8 +110,7 @@ setRiskScore(riskScore);
     setError("");
     setLoading(false);
     setTotalPackages(0);
-setRiskScore(0);
-
+    setRiskScore(0);
 
     // Reset file input
     if (fileInputRef.current) {
@@ -123,17 +145,18 @@ setRiskScore(0);
       </div>
 
       <div className="mb-4">
-  <label className="inline-flex items-center space-x-2">
-    <input
-      type="checkbox"
-      checked={includeDevDeps}
-      onChange={(e) => setIncludeDevDeps(e.target.checked)}
-      className="accent-blue-600"
-    />
-    <span>Include <code>devDependencies</code></span>
-  </label>
-</div>
-
+        <label className="inline-flex items-center space-x-2">
+          <input
+            type="checkbox"
+            checked={includeDevDeps}
+            onChange={(e) => setIncludeDevDeps(e.target.checked)}
+            className="accent-blue-600"
+          />
+          <span>
+            Include <code>devDependencies</code>
+          </span>
+        </label>
+      </div>
 
       {/* Upload or Paste */}
       {tab === "upload" && (
@@ -180,16 +203,14 @@ setRiskScore(0);
         </div>
       )}
 
-{!loading && totalPackages > 0 && (
-  <ScanCharts
-    riskScore={riskScore}
-    total={totalPackages}
-    vulnerable={vulnerabilities.length}
-    safe={safePackages.length}
-  />
-)}
-
-
+      {!loading && totalPackages > 0 && (
+        <ScanCharts
+          riskScore={riskScore}
+          total={totalPackages}
+          vulnerable={vulnerabilities.length}
+          safe={safePackages.length}
+        />
+      )}
 
       {/* Feedback */}
       {error && <p className="text-red-600 mt-4">{error}</p>}
@@ -249,6 +270,7 @@ setRiskScore(0);
           </ul>
         </div>
       )}
+      
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { exportCSV, exportJSON } from "../utils/exportHelpers";
 import { parseRequirements, queryOsv } from "../utils/osvApi";
 import { EcosystemBadge } from "./EcoSystemBadge";
 import { ScanCharts } from "./ScanCharts";
@@ -260,6 +261,42 @@ export const EnhancedScanner = () => {
         </div>
       )}
 
+{!loading && (vulnerabilities.length > 0 || safePackages.length > 0) && (
+  <div className="mt-6 flex gap-4">
+    <button
+      onClick={() =>
+        exportCSV(
+          [...vulnerabilities, ...safePackages].map((pkg) => ({
+            name: pkg.name,
+            version: pkg.version,
+            vulnerabilities: pkg.vulns
+              ? pkg.vulns.map((v: any) => v.id).join("; ")
+              : "None",
+          }))
+        )
+      }
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+    >
+      Export CSV
+    </button>
+    <button
+      onClick={() =>
+        exportJSON({
+          ecosystem,
+          total: totalPackages,
+          riskScore,
+          vulnerable: vulnerabilities,
+          safe: safePackages,
+        })
+      }
+      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+    >
+      Export JSON
+    </button>
+  </div>
+)}
+
+
       {!loading && vulnerabilities.length === 0 && safePackages.length > 0 && (
         <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded text-green-800">
           🎉 All dependencies are safe and up-to-date!
@@ -282,9 +319,7 @@ export const EnhancedScanner = () => {
         </div>
       )}
 
-{!loading && totalPackages > 0 && (
-  <SecurityTips ecosystem={ecosystem} />
-)}
+      {!loading && totalPackages > 0 && <SecurityTips ecosystem={ecosystem} />}
     </div>
   );
 };

@@ -5,9 +5,11 @@ import { EcosystemBadge } from "./EcoSystemBadge";
 import { ScanCharts } from "./ScanCharts";
 import { SecurityTips } from "./SecurityTips";
 
+type TabType = "upload" | "paste" | "github";
+
 export const EnhancedScanner = () => {
   const [includeDevDeps, setIncludeDevDeps] = useState(false);
-  const [tab, setTab] = useState<"upload" | "paste">("upload");
+  const [tab, setTab] = useState<TabType>("upload");
   const [inputText, setInputText] = useState("");
   const [vulnerabilities, setVulnerabilities] = useState<any[]>([]);
   const [safePackages, setSafePackages] = useState<any[]>([]);
@@ -17,6 +19,56 @@ export const EnhancedScanner = () => {
   const [totalPackages, setTotalPackages] = useState(0);
   const [riskScore, setRiskScore] = useState(0);
   const [ecosystem, setEcosystem] = useState<"npm" | "PyPI" | null>(null);
+  const [githubUrl, setGithubUrl] = useState("");
+
+  const handleGitHubScan = async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      const regex = /github\.com\/([^\/]+)\/([^\/]+)(?:\/|$)/;
+      const match = githubUrl.match(regex);
+
+      if (!match) {
+        setError("Invalid GitHub repo URL.");
+        setLoading(false);
+        return;
+      }
+
+      const owner = match[1];
+      const repo = match[2];
+      const branch = "main"; // or let users specify later
+
+      const tryFetchFile = async (filename: string) => {
+        const url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${filename}`;
+        const res = await fetch(url);
+        if (res.ok) return await res.text();
+        return null;
+      };
+
+      // Try package.json first
+      let fileText = await tryFetchFile("package.json");
+      if (fileText) {
+        handleScan(fileText); // npm scan
+        return;
+      }
+
+      // Try requirements.txt next
+      fileText = await tryFetchFile("requirements.txt");
+      if (fileText) {
+        handleScan(fileText); // PyPI scan
+        return;
+      }
+
+      setError(
+        "No supported dependency files (package.json or requirements.txt) found in this repo."
+      );
+    } catch (err) {
+      setError("Failed to fetch files from GitHub.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleScan = async (rawText: string) => {
     try {
@@ -118,6 +170,8 @@ export const EnhancedScanner = () => {
     setLoading(false);
     setTotalPackages(0);
     setRiskScore(0);
+    setGithubUrl("");
+
 
     // Reset file input
     if (fileInputRef.current) {
@@ -148,6 +202,14 @@ export const EnhancedScanner = () => {
           onClick={() => setTab("paste")}
         >
           Paste Text
+        </button>
+        <button
+          className={`px-4 py-2 rounded ${
+            tab === "github" ? "bg-blue-600 text-white" : "bg-gray-200"
+          }`}
+          onClick={() => setTab("github")}
+        >
+          Scan GitHub Repo
         </button>
       </div>
 
@@ -210,6 +272,33 @@ export const EnhancedScanner = () => {
         </div>
       )}
 
+{tab === "github" && (
+  <div>
+    <input
+      type="text"
+      placeholder="Paste GitHub repo URL (e.g. https://github.com/psf/requests)"
+      value={githubUrl}
+      onChange={(e) => setGithubUrl(e.target.value)}
+      className="w-full border p-3 rounded mb-2"
+    />
+    <div className="flex gap-3 mt-2">
+      <button
+        onClick={handleGitHubScan}
+        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+      >
+        Scan Repo
+      </button>
+      <button
+        onClick={clearState}
+        className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+      >
+        Clear
+      </button>
+    </div>
+  </div>
+)}
+
+
       {!loading && totalPackages > 0 && (
         <ScanCharts
           riskScore={riskScore}
@@ -261,41 +350,40 @@ export const EnhancedScanner = () => {
         </div>
       )}
 
-{!loading && (vulnerabilities.length > 0 || safePackages.length > 0) && (
-  <div className="mt-6 flex gap-4">
-    <button
-      onClick={() =>
-        exportCSV(
-          [...vulnerabilities, ...safePackages].map((pkg) => ({
-            name: pkg.name,
-            version: pkg.version,
-            vulnerabilities: pkg.vulns
-              ? pkg.vulns.map((v: any) => v.id).join("; ")
-              : "None",
-          }))
-        )
-      }
-      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-    >
-      Export CSV
-    </button>
-    <button
-      onClick={() =>
-        exportJSON({
-          ecosystem,
-          total: totalPackages,
-          riskScore,
-          vulnerable: vulnerabilities,
-          safe: safePackages,
-        })
-      }
-      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-    >
-      Export JSON
-    </button>
-  </div>
-)}
-
+      {!loading && (vulnerabilities.length > 0 || safePackages.length > 0) && (
+        <div className="mt-6 flex gap-4">
+          <button
+            onClick={() =>
+              exportCSV(
+                [...vulnerabilities, ...safePackages].map((pkg) => ({
+                  name: pkg.name,
+                  version: pkg.version,
+                  vulnerabilities: pkg.vulns
+                    ? pkg.vulns.map((v: any) => v.id).join("; ")
+                    : "None",
+                }))
+              )
+            }
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Export CSV
+          </button>
+          <button
+            onClick={() =>
+              exportJSON({
+                ecosystem,
+                total: totalPackages,
+                riskScore,
+                vulnerable: vulnerabilities,
+                safe: safePackages,
+              })
+            }
+            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+          >
+            Export JSON
+          </button>
+        </div>
+      )}
 
       {!loading && vulnerabilities.length === 0 && safePackages.length > 0 && (
         <div className="mt-6 p-4 bg-green-100 border border-green-300 rounded text-green-800">

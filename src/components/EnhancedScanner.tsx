@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { exportCSV, exportJSON } from "../utils/exportHelpers";
-import { parseRequirements, queryOsv } from "../utils/osvApi";
+import { parseRequirements, queryBatchOsv } from "../utils/osvApi";
 import { EcosystemBadge } from "./EcoSystemBadge";
 import { ScanCharts } from "./ScanCharts";
 import { SecurityTips } from "./SecurityTips";
@@ -117,19 +117,27 @@ export const EnhancedScanner = () => {
         }
       }
 
+      const packagesToQuery = Object.entries(deps).map(([name, version]) => ({
+        package: {
+          name,
+          ecosystem,
+        },
+        version: (version as string).replace(/^[^\d]*/, ""),
+      }));
+      
+      const { results } = await queryBatchOsv(packagesToQuery);
+      
       const vulns: any[] = [];
       const safe: any[] = [];
-
-      for (const [name, version] of Object.entries(deps)) {
-        const cleanVersion = (version as string).replace(/^[^\d]*/, "");
-        const data = await queryOsv(name, cleanVersion, ecosystem);
-
-        if (data.vulns?.length) {
-          vulns.push({ name, version, vulns: data.vulns });
+      
+      results.forEach((result, index) => {
+        const { package: { name }, version } = packagesToQuery[index];
+        if (result.vulns?.length) {
+          vulns.push({ name, version, vulns: result.vulns });
         } else {
           safe.push({ name, version });
         }
-      }
+      });
 
       setVulnerabilities(vulns);
       setSafePackages(safe);

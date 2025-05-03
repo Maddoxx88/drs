@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { parseRequirements, queryOsv } from "../utils/osvApi";
 import { EcosystemBadge } from "./EcoSystemBadge";
 import { ScanCharts } from "./ScanCharts";
+import { SecurityTips } from "./SecurityTips";
 
 export const EnhancedScanner = () => {
   const [includeDevDeps, setIncludeDevDeps] = useState(false);
@@ -169,7 +170,7 @@ export const EnhancedScanner = () => {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".json"
+            accept=".json, .txt"
             onChange={handleFile}
             className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-blue-600 file:text-white hover:file:bg-blue-700"
           />
@@ -280,6 +281,10 @@ export const EnhancedScanner = () => {
           </ul>
         </div>
       )}
+
+{!loading && totalPackages > 0 && (
+  <SecurityTips ecosystem={ecosystem} />
+)}
     </div>
   );
 };

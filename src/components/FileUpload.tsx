@@ -1,37 +1,78 @@
 import React, { useState } from "react";
+import { parseRequirements, queryBatchOsv } from "../utils/osvApi";
 
 export const FileUpload = () => {
   const [vulnerabilities, setVulnerabilities] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [safePackages, setSafePackages] = useState<any[]>([]);
+  const [totalPackages, setTotalPackages] = useState(0);  
+  const [riskScore, setRiskScore] = useState(0);
+  const [error, setError] = useState("");
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    setLoading(true);
+  
     const text = await file.text();
-    const json = JSON.parse(text);
-
-    const deps = json.dependencies || {};
-    const results: any[] = [];
-    const cleanPackages: any[] = [];
-
-    for (const [name, version] of Object.entries(deps)) {
-      const cleanVersion = (version as string).replace(/^[^\d]*/, "");
-      const data = await queryOsv(name, cleanVersion);
-
-      if (data.vulns?.length) {
-        results.push({ name, version, vulns: data.vulns });
-      } else {
-        cleanPackages.push({ name, version });
-      }
+    const filename = file.name.toLowerCase();
+  
+    let deps: Record<string, string> = {};
+    let ecosystem: "npm" | "PyPI" = "npm"; // default
+  
+    if (filename.endsWith("package.json")) {
+      const json = JSON.parse(text);
+      deps = json.dependencies || {};
+      ecosystem = "npm";
+    } else if (filename.endsWith("requirements.txt")) {
+      const parsed = parseRequirements(text);
+      parsed.forEach(({ name, version }) => {
+        deps[name] = version || "latest";
+      });
+      ecosystem = "PyPI";
+    } else {
+      setError("Unsupported file type. Only package.json or requirements.txt are supported.");
+      return;
     }
-
-    setVulnerabilities(results);
-    setSafePackages(cleanPackages);
-    setLoading(false);
+  
+    setLoading(true);
+    const packagesToQuery = Object.entries(deps).map(([name, version]) => ({
+      package: {
+        name,
+        ecosystem, // now properly scoped
+      },
+      version: (version as string).replace(/^[^\d]*/, ""),
+    }));
+  
+    try {
+      const { results } = await queryBatchOsv(packagesToQuery);
+  
+      const vulns: any[] = [];
+      const safe: any[] = [];
+  
+      results.forEach((result, index) => {
+        const { package: { name }, version } = packagesToQuery[index];
+        if (result.vulns?.length) {
+          vulns.push({ name, version, vulns: result.vulns });
+        } else {
+          safe.push({ name, version });
+        }
+      });
+  
+      setVulnerabilities(vulns);
+      setSafePackages(safe);
+  
+      const total = vulns.length + safe.length;
+      const score = total > 0 ? Math.round((vulns.length / total) * 10) : 0;
+  
+      setTotalPackages(total);
+      setRiskScore(score);
+    } catch (err) {
+      setError("Failed to scan file.");
+    } finally {
+      setLoading(false);
+    }
   };
+  
 
   return (
     <div className="p-4 max-w-2xl mx-auto">

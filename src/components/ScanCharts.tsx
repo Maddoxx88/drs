@@ -72,7 +72,7 @@ export const ScanCharts = ({ riskScore, total, vulnerable, safe }: Props) => {
               label
               dataKey="value"
             >
-              {pieData.map((entry, index) => (
+              {pieData.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index]} />
               ))}
             </Pie>

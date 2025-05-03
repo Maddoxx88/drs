@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { parseRequirements, queryOsv } from "../utils/osvApi";
+import { EcosystemBadge } from "./EcoSystemBadge";
 import { ScanCharts } from "./ScanCharts";
 
 export const EnhancedScanner = () => {
@@ -13,6 +14,7 @@ export const EnhancedScanner = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [totalPackages, setTotalPackages] = useState(0);
   const [riskScore, setRiskScore] = useState(0);
+  const [ecosystem, setEcosystem] = useState<"npm" | "PyPI" | null>(null);
 
   const handleScan = async (rawText: string) => {
     try {
@@ -37,6 +39,7 @@ export const EnhancedScanner = () => {
         }
 
         ecosystem = "npm";
+        setEcosystem("npm"); // or "PyPI"
       } catch {
         // Not JSON? Try parsing as requirements.txt
         const parsedReqs = parseRequirements(rawText);
@@ -48,6 +51,8 @@ export const EnhancedScanner = () => {
         }
 
         ecosystem = "PyPI";
+        setEcosystem("PyPI"); // or "PyPI"
+
         for (const { name, version } of parsedReqs) {
           deps[name] = version || "latest"; // fallback for packages with no version specified
         }
@@ -140,7 +145,7 @@ export const EnhancedScanner = () => {
           }`}
           onClick={() => setTab("paste")}
         >
-          Paste JSON
+          Paste Text
         </button>
       </div>
 
@@ -182,7 +187,7 @@ export const EnhancedScanner = () => {
           <textarea
             rows={10}
             className="w-full border p-3 mb-2 rounded font-mono text-sm"
-            placeholder="Paste your package.json content here..."
+            placeholder="Paste your package.json or requirements.txt content here..."
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
           />
@@ -245,6 +250,10 @@ export const EnhancedScanner = () => {
                   </li>
                 ))}
               </ul>
+              <strong>
+                {item.name}@{item.version}
+                {ecosystem && <EcosystemBadge type={ecosystem} />}
+              </strong>
             </div>
           ))}
         </div>
@@ -263,14 +272,14 @@ export const EnhancedScanner = () => {
           </h2>
           <ul className="list-disc ml-6 text-sm">
             {safePackages.map((pkg, i) => (
-              <li key={i}>
+              <li>
                 {pkg.name}@{pkg.version}
+                {ecosystem && <EcosystemBadge type={ecosystem} />}
               </li>
             ))}
           </ul>
         </div>
       )}
-      
     </div>
   );
 };

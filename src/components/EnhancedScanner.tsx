@@ -418,7 +418,7 @@ export const EnhancedScanner = () => {
             ✅ Safe Packages
           </h2>
           <ul className="list-disc ml-6 text-sm">
-            {safePackages.map((pkg, i) => (
+            {safePackages.map((pkg) => (
               <li>
                 {pkg.name}@{pkg.version}
                 {ecosystem && <EcosystemBadge type={ecosystem} />}

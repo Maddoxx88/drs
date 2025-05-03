@@ -2,14 +2,6 @@
 
 import { OSVPackageQuery, OSVQueryBatchResponse } from "../types/osv";
 
-type Query = {
-  package: {
-    name: string;
-    ecosystem: "npm" | "PyPI";
-  };
-  version: string;
-};
-
 export async function queryBatchOsv(queries: OSVPackageQuery[]): Promise<OSVQueryBatchResponse> {
   const response = await fetch("https://api.osv.dev/v1/querybatch", {
     method: "POST",

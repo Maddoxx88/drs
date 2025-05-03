@@ -1,12 +1,4 @@
-import React from "react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Legend,
-  Sector,
-} from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 
 type Props = {
   riskScore: number;
@@ -57,7 +49,11 @@ export const ScanCharts = ({ riskScore, total, vulnerable, safe }: Props) => {
         <div className="text-lg font-bold mt-2" style={{ color: meterColor }}>
           {riskScore}/10{" "}
           <span className="text-sm font-normal">
-            {riskScore > 6 ? "High Risk" : riskScore > 3 ? "Medium Risk" : "Low Risk"}
+            {riskScore > 6
+              ? "High Risk"
+              : riskScore > 3
+              ? "Medium Risk"
+              : "Low Risk"}
           </span>
         </div>
       </div>

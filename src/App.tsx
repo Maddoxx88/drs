@@ -1,4 +1,3 @@
-import React from "react";
 import { EnhancedScanner } from "./components/EnhancedScanner";
 
 function App() {

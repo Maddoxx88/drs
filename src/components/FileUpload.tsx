@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { queryOsv } from "../utils/osvApi";
 
 export const FileUpload = () => {
   const [vulnerabilities, setVulnerabilities] = useState<any[]>([]);

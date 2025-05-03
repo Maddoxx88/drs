@@ -4,6 +4,7 @@ import { parseRequirements, queryBatchOsv } from "../utils/osvApi";
 import { EcosystemBadge } from "./EcoSystemBadge";
 import { ScanCharts } from "./ScanCharts";
 import { SecurityTips } from "./SecurityTips";
+import { SeverityBadge } from "./SeverityBadge";
 
 type TabType = "upload" | "paste" | "github";
 
@@ -348,19 +349,26 @@ export const EnhancedScanner = () => {
                 {item.name}@{item.version}
               </strong>
               <ul className="list-disc ml-6 text-sm">
-                {item.vulns.map((v: any, j: number) => (
-                  <li key={j}>
-                    {v.id}: {v.summary}
-                    <a
-                      href={v.references?.[0]?.url || "#"}
-                      className="text-blue-600 ml-1 underline"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      [details]
-                    </a>
-                  </li>
-                ))}
+              {item.vulns.map((v: any, j: number) => {
+  const cvssV3 = v.severity?.find((s: any) => s.type === "CVSS_V3");
+  const fallback = v.severity?.[0];
+  const score = parseFloat(cvssV3?.score || fallback?.score || "0");
+
+  return (
+    <li key={j}>
+      {v.id}: {v.summary}
+      {score > 0 && <SeverityBadge score={score} />}
+      <a
+        href={v.references?.[0]?.url || "#"}
+        className="text-blue-600 ml-2 underline"
+        target="_blank"
+        rel="noreferrer"
+      >
+        [details]
+      </a>
+    </li>
+  );
+})}
               </ul>
               <strong>
                 {item.name}@{item.version}

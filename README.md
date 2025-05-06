@@ -1,4 +1,4 @@
-# 🔐 Dependency Risk Scanner
+# 🔐 Enhanced Dependency Risk Scanner
 "Find hidden risks in your dependencies before they find you."
 
 ## 📝 Overview
